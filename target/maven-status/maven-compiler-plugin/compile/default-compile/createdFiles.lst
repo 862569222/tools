@@ -1,0 +1,4 @@
+com/tt/demo/controller/ToolController.class
+com/tt/demo/DemoApplication.class
+com/tt/demo/service/ToolService.class
+com/tt/demo/dto/ApkInfo.class

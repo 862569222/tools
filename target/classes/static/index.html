@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>开发者工具箱</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/json.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.10.2/jsoneditor.min.css" rel="stylesheet" type="text/css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/9.10.2/jsoneditor.min.js"></script>
+    <style>
+        :root {
+            --color-bg-default: rgba(255, 255, 255, 0.9);
+            --color-border: #d0d7de;
+            --color-heading: #24292f;
+            --color-btn-bg: #f6f8fa;
+            --color-btn-border: rgba(27,31,36,0.15);
+            --color-btn-hover-bg: #f3f4f6;
+        }
+
+        body {
+            font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #24292f;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(41, 196, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 60%, rgba(250, 82, 82, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(123, 255, 159, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .header {
+            padding: 20px;
+            margin-bottom: 24px;
+            background-color: var(--color-bg-default);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: var(--color-heading);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1 i {
+            color: #0366d6;
+        }
+
+        .view-toggle-btn {
+            background-color: transparent;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .view-toggle-btn:hover {
+            background-color: rgba(3, 102, 214, 0.1);
+            border-color: #0366d6;
+        }
+
+        .view-toggle-btn i {
+            transition: transform 0.3s ease;
+        }
+
+        .view-toggle-btn.list-mode i {
+            transform: rotate(90deg);
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tools-grid.list-mode {
+            grid-template-columns: 250px 1fr;
+        }
+
+        .tools-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .tool-container {
+            background-color: var(--color-bg-default);
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .tool-container.active {
+            grid-column: 2;
+            transform: scale(1);
+            cursor: default;
+        }
+
+        .tool-container:not(.active) {
+            transform: scale(0.95);
+        }
+
+        .tool-container:not(.active):hover {
+            transform: scale(0.98);
+        }
+
+        .tool-container.minimized {
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .tool-container.minimized h2 {
+            margin: 0;
+            font-size: 16px;
+            border: none;
+            padding: 0;
+        }
+
+        .tool-container.minimized .tool-content {
+            display: none;
+        }
+
+        /* 添加动画类 */
+        .tool-enter {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        .tool-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: all 0.3s ease;
+        }
+
+        .tool-exit {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .tool-exit-active {
+            opacity: 0;
+            transform: scale(0.9);
+            transition: all 0.3s ease;
+        }
+
+        .tool-container h2 {
+            margin-top: 0;
+            font-size: 18px;
+            color: var(--color-heading);
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tool-container h2 i {
+            color: #0366d6;
+        }
+
+        .tool-content {
+            margin-top: 16px;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        input[type="text"], 
+        input[type="file"],
+        textarea {
+            width: calc(100% - 24px) !important;
+            padding: 8px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            background-color: rgba(255, 255, 255, 0.9);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="file"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #0366d6;
+            box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.3);
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+            font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
+        }
+
+        button {
+            background-color: var(--color-btn-bg);
+            border: 1px solid var(--color-btn-border);
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        button:hover {
+            background-color: var(--color-btn-hover-bg);
+            border-color: rgba(27,31,36,0.25);
+        }
+
+        button i {
+            font-size: 14px;
+        }
+
+        .result {
+            margin-top: 12px;
+            padding: 12px;
+            background-color: rgba(246, 248, 250, 0.9);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
+            word-break: break-all;
+        }
+
+        .dropzone {
+            border: 2px dashed var(--color-border);
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .dropzone:hover {
+            background-color: rgba(246, 248, 250, 0.8);
+            border-color: #0366d6;
+        }
+
+        .dropzone i {
+            font-size: 24px;
+            color: #0366d6;
+            margin-bottom: 8px;
+        }
+
+        .error {
+            color: #cf222e;
+            margin-top: 8px;
+            padding: 8px;
+            background-color: rgba(255, 235, 233, 0.9);
+            border-radius: 4px;
+        }
+
+        /* 添加动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tools-grid > div:nth-child(1) { animation-delay: 0.1s; }
+        .tools-grid > div:nth-child(2) { animation-delay: 0.2s; }
+        .tools-grid > div:nth-child(3) { animation-delay: 0.3s; }
+        .tools-grid > div:nth-child(4) { animation-delay: 0.4s; }
+
+        .json-result {
+            position: relative;
+            margin-top: 12px;
+            background-color: rgba(246, 248, 250, 0.9);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .json-result pre {
+            margin: 0;
+            padding: 12px;
+            max-height: 400px;
+            overflow: auto;
+            position: relative;
+            background-color: rgba(246, 248, 250, 0.9);
+        }
+
+        .json-result code {
+            font-family: inherit;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .json-toolbar {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.9);
+            border-bottom-left-radius: 6px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .json-toolbar button {
+            padding: 4px 8px;
+            margin: 0;
+            font-size: 12px;
+            background: transparent;
+            border: none;
+            color: #0366d6;
+        }
+
+        .json-toolbar button:hover {
+            background: rgba(3, 102, 214, 0.1);
+        }
+
+        .hljs-string { color: #032f62; }
+        .hljs-number { color: #005cc5; }
+        .hljs-boolean { color: #005cc5; }
+        .hljs-null { color: #005cc5; }
+        .hljs-punctuation { color: #24292e; }
+        .hljs-property { color: #e36209; }
+
+        .json-line {
+            position: relative;
+            padding-left: 24px;
+            cursor: pointer;
+            font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .json-line:hover {
+            background-color: rgba(3, 102, 214, 0.1);
+        }
+
+        .json-line.collapsible {
+            position: relative;
+        }
+
+        .json-line.collapsible::before {
+            content: '▼';
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+            transition: transform 0.2s;
+            font-size: 12px;
+            color: #0366d6;
+            pointer-events: none;
+        }
+
+        .json-line.collapsible.collapsed::before {
+            transform: translateY(-50%) rotate(0);
+        }
+
+        .json-line.collapsed + .json-line {
+            display: none;
+        }
+
+        /* 添加 JSONEditor 相关样式 */
+        .json-editor {
+            height: 400px;
+            margin-top: 12px;
+        }
+        
+        /* 调整工具栏样式 */
+        .jsoneditor-menu {
+            background-color: var(--color-btn-bg) !important;
+            border-color: var(--color-border) !important;
+        }
+        
+        .jsoneditor {
+            border-color: var(--color-border) !important;
+        }
+
+        .button-group {
+            margin-bottom: 12px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            transition: transform 0.3s ease-out;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .jsoneditor-search {
+            position: absolute;
+            right: 2px;
+            top: 2px;
+        }
+
+        .timestamp-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .current-time {
+            background-color: rgba(3, 102, 214, 0.1);
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .time-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0366d6;
+            font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
+        }
+
+        .timestamp-section {
+            background-color: rgba(246, 248, 250, 0.9);
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--color-border);
+        }
+
+        .timestamp-section h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: var(--color-heading);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin: 10px 0;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .apk-info table,
+        .apk-hash table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        .apk-info td,
+        .apk-hash td {
+            padding: 8px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .apk-info td:first-child,
+        .apk-hash td:first-child {
+            width: 120px;
+            color: #666;
+        }
+
+        .apk-permissions pre {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f6f8fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1><i class="fas fa-tools"></i> 开发者工具箱</h1>
+            <button id="viewToggle" class="view-toggle-btn" onclick="toggleView()">
+                <i class="fas fa-list"></i>
+                <span>切换视图</span>
+            </button>
+        </div>
+    </div>
+    
+    <div class="tools-grid">
+        <!-- MD5工具 -->
+        <div class="tool-container">
+            <h2><i class="fas fa-hash"></i> MD5 转换</h2>
+            <div class="tool-content">
+                <input type="text" id="md5Input" placeholder="请输入要转换的字符串">
+                <button onclick="convertToMd5()">
+                    <i class="fas fa-arrow-right"></i> 转换
+                </button>
+                <div id="md5Result" class="result"></div>
+            </div>
+        </div>
+
+        <!-- Base64工具 -->
+        <div class="tool-container">
+            <h2><i class="fas fa-exchange-alt"></i> Base64 编解码</h2>
+            <div class="tool-content">
+                <input type="text" id="base64Input" placeholder="请输入要编码/解码的内容">
+                <button onclick="encodeBase64()">
+                    <i class="fas fa-lock"></i> 编码
+                </button>
+                <button onclick="decodeBase64()">
+                    <i class="fas fa-lock-open"></i> 解码
+                </button>
+                <div id="base64Result" class="result"></div>
+            </div>
+        </div>
+
+        <!-- PDF转Word -->
+        <div class="tool-container">
+            <h2><i class="fas fa-file-pdf"></i> PDF转Word</h2>
+            <div class="tool-content">
+                <div class="dropzone" id="pdfDropzone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>拖拽PDF文件到这里或点击选择文件</p>
+                    <input type="file" id="pdfInput" accept=".pdf" style="display: none">
+                </div>
+                <button onclick="convertPdfToWord()">
+                    <i class="fas fa-file-word"></i> 转换
+                </button>
+                <div id="pdfResult" class="result"></div>
+            </div>
+        </div>
+
+        <!-- JSON格式化 -->
+        <div class="tool-container">
+            <h2><i class="fas fa-code"></i> JSON格式化</h2>
+            <div class="tool-content">
+                <textarea id="jsonInput" placeholder="请输入JSON字符串"></textarea>
+                <div class="button-group">
+                    <button onclick="formatJson()">
+                        <i class="fas fa-indent"></i> 格式化
+                    </button>
+                    <button onclick="beautifyJson()">
+                        <i class="fas fa-magic"></i> 一键美化
+                    </button>
+                    <button onclick="copyJson()">
+                        <i class="fas fa-copy"></i> 复制
+                    </button>
+                    <button onclick="clearJson()">
+                        <i class="fas fa-trash"></i> 清空
+                    </button>
+                </div>
+                <div id="jsoneditor" class="json-editor"></div>
+            </div>
+        </div>
+
+        <!-- Word转PDF -->
+        <div class="tool-container">
+            <h2><i class="fas fa-file-word"></i> Word转PDF</h2>
+            <div class="tool-content">
+                <div class="dropzone" id="wordDropzone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>拖拽Word文件到这里或点击选择文件</p>
+                    <input type="file" id="wordInput" accept=".docx,.doc" style="display: none">
+                </div>
+                <button onclick="convertWordToPdf()">
+                    <i class="fas fa-file-pdf"></i> 转换
+                </button>
+                <div id="wordResult" class="result"></div>
+            </div>
+        </div>
+
+        <!-- 时间戳工具 -->
+        <div class="tool-container">
+            <h2><i class="fas fa-clock"></i> 时间戳工具</h2>
+            <div class="tool-content">
+                <div class="timestamp-container">
+                    <!-- 实时时间显示 -->
+                    <div class="current-time">
+                        <h3>当前时间</h3>
+                        <div id="currentDateTime" class="time-display"></div>
+                    </div>
+                    
+                    <!-- 时间戳转换 -->
+                    <div class="timestamp-section">
+                        <h3>时间戳转换</h3>
+                        <div class="button-group">
+                            <button onclick="getTimestamp('s')">
+                                <i class="fas fa-stopwatch"></i> 获取秒级时间戳
+                            </button>
+                            <button onclick="getTimestamp('ms')">
+                                <i class="fas fa-stopwatch-20"></i> 获取毫秒级时间戳
+                            </button>
+                            <button onclick="copyTimestamp()" id="copyTimestampBtn">
+                                <i class="fas fa-copy"></i> 复制
+                            </button>
+                        </div>
+                        <div id="timestampResult" class="result"></div>
+                    </div>
+                    
+                    <!-- 时间戳转日期 -->
+                    <div class="timestamp-section">
+                        <h3>时间戳转日期</h3>
+                        <div class="input-group">
+                            <input type="text" id="timestampInput" placeholder="请输入时间戳">
+                            <div class="radio-group">
+                                <label>
+                                    <input type="radio" name="timestampType" value="s" checked> 秒级时间戳
+                                </label>
+                                <label>
+                                    <input type="radio" name="timestampType" value="ms"> 毫秒级时间戳
+                                </label>
+                            </div>
+                        </div>
+                        <button onclick="convertTimestamp()">
+                            <i class="fas fa-calendar-alt"></i> 转换
+                        </button>
+                        <div id="dateResult" class="result"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- APK解析工具 -->
+        <div class="tool-container">
+            <h2><i class="fab fa-android"></i> APK解析工具</h2>
+            <div class="tool-content">
+                <div class="dropzone" id="apkDropzone">
+                    <i class="fas fa-upload"></i>
+                    <p>拖拽APK文件到这里或点击选择文件</p>
+                    <input type="file" id="apkInput" accept=".apk" style="display: none">
+                </div>
+                <div id="apkResult" class="result" style="display: none;">
+                    <div class="apk-info">
+                        <h3>基本信息</h3>
+                        <table>
+                            <tr><td>应用名称：</td><td id="appName"></td></tr>
+                            <tr><td>包名：</td><td id="packageName"></td></tr>
+                            <tr><td>版本名称：</td><td id="versionName"></td></tr>
+                            <tr><td>版本号：</td><td id="versionCode"></td></tr>
+                            <tr><td>最小SDK版本：</td><td id="minSdkVersion"></td></tr>
+                            <tr><td>目标SDK版本：</td><td id="targetSdkVersion"></td></tr>
+                            <tr><td>文件大小：</td><td id="fileSize"></td></tr>
+                        </table>
+                    </div>
+                    <div class="apk-hash">
+                        <h3>文件哈希</h3>
+                        <table>
+                            <tr><td>MD5：</td><td id="md5"></td></tr>
+                            <tr><td>SHA1：</td><td id="sha1"></td></tr>
+                            <tr><td>SHA256：</td><td id="sha256"></td></tr>
+                        </table>
+                    </div>
+                    <div class="apk-permissions">
+                        <h3>权限列表</h3>
+                        <pre id="permissions"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // MD5转换
+        function convertToMd5() {
+            const input = document.getElementById('md5Input').value;
+            fetch('/api/tools/md5', {
+                method: 'POST',
+                body: input
+            })
+            .then(response => response.text())
+            .then(result => {
+                document.getElementById('md5Result').textContent = result;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('转换失败，请重试');
+            });
+        }
+
+        // Base64编解码
+        function encodeBase64() {
+            const input = document.getElementById('base64Input').value;
+            fetch('/api/tools/base64/encode', {
+                method: 'POST',
+                body: input
+            })
+            .then(response => response.text())
+            .then(result => {
+                document.getElementById('base64Result').textContent = result;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('编码失败，请重试');
+            });
+        }
+
+        function decodeBase64() {
+            const input = document.getElementById('base64Input').value;
+            fetch('/api/tools/base64/decode', {
+                method: 'POST',
+                body: input
+            })
+            .then(response => response.text())
+            .then(result => {
+                document.getElementById('base64Result').textContent = result;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('解码失败，请重试');
+            });
+        }
+
+        // PDF转Word
+        const dropzone = document.getElementById('pdfDropzone');
+        const pdfInput = document.getElementById('pdfInput');
+
+        dropzone.onclick = () => pdfInput.click();
+
+        dropzone.ondragover = (e) => {
+            e.preventDefault();
+            dropzone.style.backgroundColor = '#f3f4f6';
+        };
+
+        dropzone.ondragleave = () => {
+            dropzone.style.backgroundColor = '';
+        };
+
+        dropzone.ondrop = (e) => {
+            e.preventDefault();
+            dropzone.style.backgroundColor = '';
+            handlePdfFile(e.dataTransfer.files[0]);
+        };
+
+        pdfInput.onchange = (e) => {
+            handlePdfFile(e.target.files[0]);
+        };
+
+        function handlePdfFile(file) {
+            if (file && file.type === 'application/pdf') {
+                const formData = new FormData();
+                formData.append('file', file);
+                convertPdfToWord(formData);
+            } else {
+                alert('请选择PDF文件');
+            }
+        }
+
+        function convertPdfToWord(formData) {
+            document.getElementById('pdfResult').textContent = '转换中...';
+            fetch('/api/tools/pdf2word', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'converted.docx';
+                a.click();
+                document.getElementById('pdfResult').textContent = '转换完成！';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('pdfResult').textContent = '转换失败，请重试';
+            });
+        }
+
+        // 创建 JSONEditor 实例
+        const container = document.getElementById('jsoneditor');
+        const options = {
+            mode: 'tree',
+            modes: ['tree', 'code'],
+            onError: function (err) {
+                alert('JSON格式错误: ' + err.toString());
+            },
+            onModeChange: function (newMode, oldMode) {
+                console.log('Mode changed from', oldMode, 'to', newMode);
+            },
+            language: 'zh-CN',  // 使用中文界面
+            search: true,       // 启用搜索功能
+            navigationBar: false, // 隐藏导航栏
+            statusBar: false,    // 隐藏状态栏
+            mainMenuBar: true,   // 显示主菜单栏
+            colorPicker: true,   // 启用颜色选择器
+            history: true,       // 启用历史记录
+            theme: 'ace/theme/github' // 使用 GitHub 主题
+        };
+        const editor = new JSONEditor(container, options);
+
+        // 格式化 JSON
+        function formatJson() {
+            const input = document.getElementById('jsonInput').value;
+            try {
+                const json = JSON.parse(input);
+                editor.set(json);
+                editor.expandAll();
+            } catch (err) {
+                alert('无效的JSON格式: ' + err.toString());
+            }
+        }
+
+        // 一键美化 JSON
+        function beautifyJson() {
+            try {
+                const currentJson = editor.get();
+                const beautified = JSON.stringify(currentJson, null, 2);
+                document.getElementById('jsonInput').value = beautified;
+                editor.set(currentJson);
+                editor.expandAll();
+                showToast('JSON已美化');
+            } catch (err) {
+                alert('美化失败: ' + err.toString());
+            }
+        }
+
+        // 复制 JSON
+        function copyJson() {
+            try {
+                const json = editor.get();
+                const formatted = JSON.stringify(json, null, 2);
+                navigator.clipboard.writeText(formatted).then(() => {
+                    showToast('已复制到剪贴板');
+                });
+            } catch (err) {
+                alert('复制失败: ' + err.toString());
+            }
+        }
+
+        // 清空 JSON
+        function clearJson() {
+            document.getElementById('jsonInput').value = '';
+            editor.set({});
+            showToast('已清空');
+        }
+
+        // 显示提示信息
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        document.body.removeChild(toast);
+                    }, 300);
+                }, 2000);
+            }, 100);
+        }
+
+        // 设置示例数据
+        editor.set({
+            "示例": "请在上方输入框中输入JSON数据，然后点击格式化按钮",
+            "功能说明": {
+                "格式化": "将输入框的JSON进行格式化",
+                "一键美化": "美化当前JSON并更新到输入框",
+                "复制": "复制当前JSON到剪贴板",
+                "清空": "清空所有内容"
+            },
+            "支持功能": [
+                "树形展示",
+                "折叠/展开",
+                "搜索",
+                "编辑",
+                "语法高亮"
+            ]
+        });
+
+        // Word转PDF
+        const wordDropzone = document.getElementById('wordDropzone');
+        const wordInput = document.getElementById('wordInput');
+
+        wordDropzone.onclick = () => wordInput.click();
+
+        wordDropzone.ondragover = (e) => {
+            e.preventDefault();
+            wordDropzone.style.backgroundColor = '#f3f4f6';
+        };
+
+        wordDropzone.ondragleave = () => {
+            wordDropzone.style.backgroundColor = '';
+        };
+
+        wordDropzone.ondrop = (e) => {
+            e.preventDefault();
+            wordDropzone.style.backgroundColor = '';
+            handleWordFile(e.dataTransfer.files[0]);
+        };
+
+        wordInput.onchange = (e) => {
+            handleWordFile(e.target.files[0]);
+        };
+
+        function handleWordFile(file) {
+            if (file && (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+                         file.type === 'application/msword')) {
+                const formData = new FormData();
+                formData.append('file', file);
+                convertWordToPdf(formData);
+            } else {
+                alert('请选择Word文件(.doc或.docx)');
+            }
+        }
+
+        function convertWordToPdf(formData) {
+            document.getElementById('wordResult').textContent = '转换中...';
+            fetch('/api/tools/word2pdf', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'converted.pdf';
+                a.click();
+                document.getElementById('wordResult').textContent = '转换完成！';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('wordResult').textContent = '转换失败，请重试';
+            });
+        }
+
+        // 修改初始化布局函数
+        function initializeToolsLayout() {
+            const toolsGrid = document.querySelector('.tools-grid');
+            const toolsList = document.createElement('div');
+            toolsList.className = 'tools-list';
+            toolsList.style.display = 'none';
+            
+            toolsGrid.insertBefore(toolsList, toolsGrid.firstChild);
+            document.addEventListener('click', handleToolClick);
+
+            // 从 localStorage 恢复视图模式
+            const viewMode = localStorage.getItem('viewMode');
+            if (viewMode === 'list') {
+                toggleView();
+            }
+        }
+
+        // 添加视图切换函数
+        function toggleView() {
+            const toolsGrid = document.querySelector('.tools-grid');
+            const toolsList = document.querySelector('.tools-list');
+            const toggleBtn = document.getElementById('viewToggle');
+            const isListMode = toolsGrid.classList.contains('list-mode');
+
+            if (!isListMode) {
+                // 切换到列表模式
+                toolsGrid.classList.add('list-mode');
+                toolsList.style.display = 'flex';
+                toggleBtn.classList.add('list-mode');
+                toggleBtn.querySelector('i').className = 'fas fa-th-large';
+                toggleBtn.querySelector('span').textContent = '网格视图';
+                
+                // 将所有工具移动到列表中，除了当前活动的工具
+                const tools = Array.from(document.querySelectorAll('.tool-container'));
+                const activeTool = document.querySelector('.tool-container.active');
+                tools.forEach(tool => {
+                    if (tool !== activeTool) {
+                        tool.classList.add('minimized');
+                        toolsList.appendChild(tool);
+                    }
+                });
+                
+                localStorage.setItem('viewMode', 'list');
+            } else {
+                // 切换到网格模式
+                toolsGrid.classList.remove('list-mode');
+                toolsList.style.display = 'none';
+                toggleBtn.classList.remove('list-mode');
+                toggleBtn.querySelector('i').className = 'fas fa-list';
+                toggleBtn.querySelector('span').textContent = '列表视图';
+                
+                // 恢复所有工具到网格中
+                const tools = Array.from(document.querySelectorAll('.tool-container'));
+                tools.forEach(tool => {
+                    tool.classList.remove('minimized', 'active');
+                    toolsGrid.appendChild(tool);
+                });
+                
+                localStorage.setItem('viewMode', 'grid');
+            }
+        }
+
+        // 修改工具点击处理函数
+        function handleToolClick(event) {
+            const clickedTool = event.target.closest('.tool-container');
+            if (!clickedTool) return;
+
+            const toolsGrid = document.querySelector('.tools-grid');
+            if (!toolsGrid.classList.contains('list-mode')) {
+                // 如果不是列表模式，切换到列表模式
+                toggleView();
+            }
+
+            if (!clickedTool.classList.contains('active')) {
+                const activeTool = document.querySelector('.tool-container.active');
+                if (activeTool) {
+                    activeTool.classList.remove('active');
+                    activeTool.classList.add('minimized');
+                    document.querySelector('.tools-list').appendChild(activeTool);
+                }
+
+                clickedTool.classList.remove('minimized');
+                clickedTool.classList.add('active');
+                toolsGrid.appendChild(clickedTool);
+                
+                // 添加动画效果
+                clickedTool.classList.add('tool-enter');
+                requestAnimationFrame(() => {
+                    clickedTool.classList.remove('tool-enter');
+                    clickedTool.classList.add('tool-enter-active');
+                    setTimeout(() => {
+                        clickedTool.classList.remove('tool-enter-active');
+                    }, 300);
+                });
+            }
+        }
+
+        // 页面加载完成后初始化布局
+        document.addEventListener('DOMContentLoaded', initializeToolsLayout);
+
+        // 更新实时时间显示
+        function updateCurrentTime() {
+            const now = new Date();
+            const options = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            };
+            document.getElementById('currentDateTime').textContent = 
+                now.toLocaleString('zh-CN', options);
+        }
+
+        // 初始化实时时间显示
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 1000);
+
+        // 获取时间戳
+        function getTimestamp(type) {
+            const now = new Date();
+            const timestamp = type === 's' ? 
+                Math.floor(now.getTime() / 1000) : 
+                now.getTime();
+            
+            document.getElementById('timestampResult').textContent = timestamp;
+        }
+
+        // 复制时间戳
+        function copyTimestamp() {
+            const timestamp = document.getElementById('timestampResult').textContent;
+            if (timestamp) {
+                navigator.clipboard.writeText(timestamp).then(() => {
+                    showToast('已复制到剪贴板');
+                });
+            }
+        }
+
+        // 转换时间戳为日期
+        function convertTimestamp() {
+            const timestamp = document.getElementById('timestampInput').value;
+            const type = document.querySelector('input[name="timestampType"]:checked').value;
+            
+            if (!timestamp) {
+                alert('请输入时间戳');
+                return;
+            }
+
+            try {
+                const ts = parseInt(timestamp);
+                const date = new Date(type === 's' ? ts * 1000 : ts);
+                
+                if (isNaN(date.getTime())) {
+                    throw new Error('无效的时间戳');
+                }
+
+                const options = {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                };
+                
+                document.getElementById('dateResult').textContent = 
+                    date.toLocaleString('zh-CN', options);
+            } catch (error) {
+                alert('无效的时间戳');
+            }
+        }
+
+        // APK解析相关代码
+        const apkDropzone = document.getElementById('apkDropzone');
+        const apkInput = document.getElementById('apkInput');
+
+        apkDropzone.onclick = () => apkInput.click();
+
+        apkDropzone.ondragover = (e) => {
+            e.preventDefault();
+            apkDropzone.style.backgroundColor = '#f3f4f6';
+        };
+
+        apkDropzone.ondragleave = () => {
+            apkDropzone.style.backgroundColor = '';
+        };
+
+        apkDropzone.ondrop = (e) => {
+            e.preventDefault();
+            apkDropzone.style.backgroundColor = '';
+            handleApkFile(e.dataTransfer.files[0]);
+        };
+
+        apkInput.onchange = (e) => {
+            handleApkFile(e.target.files[0]);
+        };
+
+        function handleApkFile(file) {
+            if (file && file.name.toLowerCase().endsWith('.apk')) {
+                const formData = new FormData();
+                formData.append('file', file);
+                parseApk(formData);
+            } else {
+                alert('请选择APK文件');
+            }
+        }
+
+        function parseApk(formData) {
+            document.getElementById('apkResult').style.display = 'none';
+            showToast('正在解析...');
+            
+            fetch('/api/tools/parseApk', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 显示基本信息
+                document.getElementById('appName').textContent = data.appName;
+                document.getElementById('packageName').textContent = data.packageName;
+                document.getElementById('versionName').textContent = data.versionName;
+                document.getElementById('versionCode').textContent = data.versionCode;
+                document.getElementById('minSdkVersion').textContent = data.minSdkVersion;
+                document.getElementById('targetSdkVersion').textContent = data.targetSdkVersion;
+                document.getElementById('fileSize').textContent = formatFileSize(data.fileSize);
+                
+                // 显示哈希值
+                document.getElementById('md5').textContent = data.md5;
+                document.getElementById('sha1').textContent = data.sha1;
+                document.getElementById('sha256').textContent = data.sha256;
+                
+                // 显示权限列表
+                document.getElementById('permissions').textContent = data.permissions;
+                
+                // 显示结果
+                document.getElementById('apkResult').style.display = 'block';
+                showToast('解析完成');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('解析失败，请重试');
+            });
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html> 
